@@ -1,0 +1,1 @@
+{"buildTargets":["createdb","dropdb","make","migratedown","migrateup","postgres","sqlc"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}
