@@ -5,3 +5,5 @@ packages:
     engine: "postgresql"
     schema: "./db/migration/"
     queries: "./db/query/"
+    emit_json_tags: true
+    emit_empty_slices: true
