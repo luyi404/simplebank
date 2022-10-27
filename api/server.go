@@ -1,32 +1,54 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	db "github.com/luyi404/simplebank/db/sqlc"
+	"github.com/luyi404/simplebank/token"
+	"github.com/luyi404/simplebank/util"
 )
 
 type Server struct {
-	store  db.Store
-	router *gin.Engine
+	config     util.Config
+	store      db.Store
+	tokenMaker token.Maker
+	router     *gin.Engine
 }
 
-func NewServer(store db.Store) *Server {
+func NewServer(config util.Config, store db.Store) (*Server, error) {
+	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create token maker: %w", err)
+	}
+
 	s := &Server{
-		store:  store,
-		router: gin.Default(),
+		config:     config,
+		store:      store,
+		tokenMaker: tokenMaker,
+		router:     gin.Default(),
 	}
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("currency", validCurrency)
+		err := v.RegisterValidation("currency", validCurrency)
+		if err != nil {
+			return nil, err
+		}
 	}
-	s.router.POST("/accounts", s.createAccount)
-	s.router.GET("/accounts/:id", s.getAccount)
-	s.router.GET("/accounts", s.listAccounts)
-	s.router.POST("/accounts/delete/:id", s.deleteAccount)
-	s.router.POST("/transfer", s.createTransfer)
 
-	return s
+	s.setupRouter()
+	return s, nil
+}
+
+func (server *Server) setupRouter() {
+	server.router.POST("/users", server.createUser)
+	server.router.POST("/users/login", server.loginUser)
+
+	server.router.POST("/accounts", server.createAccount)
+	server.router.GET("/accounts/:id", server.getAccount)
+	server.router.GET("/accounts", server.listAccounts)
+	server.router.POST("/accounts/delete/:id", server.deleteAccount)
+	server.router.POST("/transfer", server.createTransfer)
 }
 
 func (server *Server) Start(address string) error {
